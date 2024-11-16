@@ -46,6 +46,7 @@ class client
                     // call parser to identify command 
                     command = parser.get_command_from_string(command_string);
                     // call communication manager to request from server
+                    std::cout << "will send request to server" << std::endl;
                     std::cout << communication_manager.send_request_to_server(command) << std::endl;
                 }
                 std::cin >> command_string;

@@ -22,11 +22,54 @@ clientComManager::clientComManager(/* args */){};
 // PRIVATE METHODS
 void clientComManager::get_sync_dir()
 {
+    FileTransfer sender_reciever_client;
     // Send packet signaling server to execute get_sync_dir with client info (username and socket)
     string client_info = (get_username() + "\n" + to_string(this->sock_cmd));
     Packet get_sync_command = Packet(Packet::CMD_PACKET, Command::GET_SYNC_DIR, 1, client_info.c_str(), client_info.length());
     get_sync_command.send_packet(this->sock_cmd);
+    sender_reciever_client.receive_file("../src/client/sync_dir/cv_bruno_costa.txt", this->sock_fetch);
 
+}
+
+void clientComManager::receive_sync_dir_files() {
+    int client_socket = this->sock_fetch;
+    FileTransfer receiver;
+    while (true) {
+        // Receive a packet
+        Packet received_packet = Packet::receive_packet(client_socket);
+        if (received_packet.get_type() != Packet::DATA_PACKET) {
+            // Handle unexpected packet type (optional)
+            std::cerr << "Error: Received an unexpected packet type." << std::endl;
+            break;
+        }
+
+        // Extract the payload
+        std::string payload(received_packet.get_payload(), received_packet.get_length());
+        
+        // Split the payload to extract path, total paths, and index
+        std::istringstream payload_stream(payload);
+        std::string path;
+        int total_paths = 0, index = 0;
+        
+        if (std::getline(payload_stream, path, '\n') && 
+            payload_stream >> total_paths && 
+            payload_stream >> index) {
+            // Log received information
+            std::cout << "Received path: " << path << " (Index " << index << " of " << total_paths << ")" << std::endl;
+            
+            // Receive the file using the extracted path
+            receiver.receive_file(path, client_socket);
+
+            // Check if all paths are received
+            if (index + 1 == total_paths) {
+                std::cout << "All files received." << std::endl;
+                break;
+            }
+        } else {
+            std::cerr << "Error: Invalid payload format." << std::endl;
+            break;
+        }
+    }
 }
 
 
@@ -86,12 +129,11 @@ void clientComManager::close_sockets(){
 // This is the interface on client that will deletage each method based on commands.
 // gets a command and returns an status, 200, 400...
 std::string clientComManager::send_request_to_server(Command command) {
-    FileTransfer sender_reciever_client;
     switch (command) {
         case Command::GET_SYNC_DIR:
+            std::cout << "Understood its get_sync_dir..." << std::endl;
             try {
-                get_sync_dir(); // Call the function that might throw
-                sender_reciever_client.receive_file("../src/client/sync_dir/cv_bruno_costa.txt", this->sock_fetch);
+                receive_sync_dir_files(); // Call the function that might throw
                 return "Everything ok.";
             } catch (const std::exception& e) {
                 // Handle standard exceptions
