@@ -22,26 +22,31 @@ clientComManager::clientComManager(/* args */){};
 // PRIVATE METHODS
 void clientComManager::get_sync_dir()
 {
-    FileTransfer sender_reciever_client;
-    // Send packet signaling server to execute get_sync_dir with client info (username and socket)
+    std::cout << "8";
     string client_info = (get_username() + "\n" + to_string(this->sock_cmd));
     Packet get_sync_command = Packet(Packet::CMD_PACKET, Command::GET_SYNC_DIR, 1, client_info.c_str(), client_info.length());
+    std::cout << "9";
     get_sync_command.send_packet(this->sock_cmd);
-    sender_reciever_client.receive_file("../src/client/sync_dir/cv_bruno_costa.txt", this->sock_fetch);
+    std::cout << " 10";
+    receive_sync_dir_files();
 
 }
 
 void clientComManager::receive_sync_dir_files() {
     int client_socket = this->sock_fetch;
     FileTransfer receiver;
+
     while (true) {
         // Receive a packet
+        std::cout << " 11";
         Packet received_packet = Packet::receive_packet(client_socket);
+        std::cout << " 12";
         if (received_packet.get_type() != Packet::DATA_PACKET) {
             // Handle unexpected packet type (optional)
             std::cerr << "Error: Received an unexpected packet type." << std::endl;
             break;
         }
+        std::cout << " 13";
 
         // Extract the payload
         std::string payload(received_packet.get_payload(), received_packet.get_length());
@@ -163,22 +168,26 @@ int clientComManager::connect_client_to_server(int argc, char* argv[])
 {
     int  port;
     struct hostent *server;
-    
+    std::cout << "2";
 	set_username(argv[1]);
+    std::cout << "3";
 	server = gethostbyname(argv[2]);
     port = atoi(argv[3]);
-
+    std::cout << "4";
 	if (server == NULL) {
         fprintf(stderr,"ERROR, no such host\n");
         exit(0);
     }
+    std::cout << "5";
     
     // SOCKET
     start_sockets();
 
+    std::cout << "6";
     // CONNECT
 	connect_sockets(port,server);
     //SEND dir files
+    std::cout << "7";
     get_sync_dir();
 
     return 0;

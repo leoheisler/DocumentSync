@@ -40,13 +40,13 @@ class client
 
             file_manager.create_client_sync_dir();
             bool exit = false;     
+            std::cout << "1";
             communication_manager.connect_client_to_server(argc,argv);
             do{
                 if (valid_command_status(command_status)){
                     // call parser to identify command 
                     command = parser.get_command_from_string(command_string);
                     // call communication manager to request from server
-                    std::cout << "will send request to server" << std::endl;
                     std::cout << communication_manager.send_request_to_server(command) << std::endl;
                 }
                 std::cin >> command_string;

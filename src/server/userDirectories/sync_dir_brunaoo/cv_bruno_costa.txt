@@ -1,0 +1,3 @@
+ESTE É UM ARQUIVO DE CURRÍCULO DE TESTE.
+
+Meu nome é bruno e eu estudo engenharia da computação na ufrgs.
