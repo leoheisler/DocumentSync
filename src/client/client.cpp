@@ -9,7 +9,7 @@
 #include "packet.h"
 
 using namespace std;
-
+#define PORT 1909
 class client
 {
     private:
@@ -43,7 +43,20 @@ class client
                 communication_manager.execute_command(command);
             }
         }
-
+        void bind_client_socket(int* listening_socket){
+            struct sockaddr_in cli_addr;
+            if ((*listening_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+                throw std::runtime_error("ERRO ABRINDO O SOCKET");
+            }
+                
+            cli_addr.sin_family = AF_INET;
+            cli_addr.sin_port = htons(PORT);
+            cli_addr.sin_addr.s_addr = INADDR_ANY;
+            bzero(&(cli_addr.sin_zero), 8);     
+            if (bind(*listening_socket, (struct sockaddr *) &cli_addr, sizeof(cli_addr)) < 0){
+                throw std::runtime_error("ERRO BINDANDO O SOCKET");
+            } 
+        }
         void upload_to_server()
         {
             // Inotify for client->server sync
@@ -59,7 +72,43 @@ class client
                 communication_manager.await_sync();
             }
         }
+        void accept_connections(){
+            int listening_socket;
+            int first_contact_socket, second_contact_socket, third_contact_socket;
+            struct sockaddr_in client_address;
+            socklen_t client_len = sizeof(struct sockaddr_in);
 
+            try{
+                bind_client_socket(&listening_socket);
+            }catch(const std::exception& e){
+                std::cerr << e.what() << '\n';
+            }
+            
+            listen(listening_socket,3);
+
+            while(true){
+                first_contact_socket = accept(listening_socket,(struct sockaddr*)&client_address,&client_len);
+                if(first_contact_socket >= 0){
+                    communication_manager.mutex_cmd.lock();
+                    communication_manager.mutex_fetch.lock();
+                    communication_manager.mutex_upload.lock();
+                    communication_manager.close_sockets();
+                    try{
+                        second_contact_socket = accept(listening_socket,(struct sockaddr*)&client_address,&client_len);
+                        third_contact_socket = accept(listening_socket,(struct sockaddr*)&client_address,&client_len);
+
+                        communication_manager.set_sock_cmd(first_contact_socket);
+                        communication_manager.set_sock_upload(second_contact_socket);
+                        communication_manager.set_sock_fetch(third_contact_socket);
+                    }catch(const std::exception& e){
+                        std::cerr << e.what() << '\n';
+                    }
+                    communication_manager.mutex_cmd.unlock();
+                    communication_manager.mutex_fetch.unlock();
+                    communication_manager.mutex_upload.unlock();
+                }
+            }
+        }
     public:
         client(){
             file_manager = new clientFileManager;// Configurando o file_manager no communication_manager
@@ -75,7 +124,7 @@ class client
             thread command_thread(&client::command_input_interface,this);
             thread upload_thread(&client::upload_to_server,this);
             thread download_thread(&client::download_from_server,this);
-
+            thread accept_thread(&client::accept_connections,this);
             // wait for all threads to finish so main can finish
             command_thread.join();
             upload_thread.join();

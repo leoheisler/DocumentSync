@@ -5,13 +5,15 @@ namespace fs = std::filesystem;
 
 // CONSTRUCTOR
 clientComManager::clientComManager(){
- 
 };
+
 
 // PRIVATE METHODS
 void clientComManager::start_sockets()
 {
-
+    mutex_cmd.lock();
+    mutex_fetch.lock();
+    mutex_upload.lock();
     //sock_cmd used for the client to send commands like: download, upload, delete, list_server, list_server, exit, two-way communication
     if ((this->sock_cmd = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
         cout << "ERROR opening cmd socket\n";
@@ -23,7 +25,9 @@ void clientComManager::start_sockets()
     //sock_fetch used for the client to download files from the server if synchronization needed
     if ((this->sock_fetch = socket(AF_INET, SOCK_STREAM, 0)) == -1) 
         cout << "ERROR opening fetch socket\n";
-    
+    mutex_cmd.unlock();
+    mutex_fetch.unlock();
+    mutex_upload.unlock();
                     
 }
 
@@ -36,6 +40,10 @@ void clientComManager::connect_sockets(int port, hostent* server)
 	serv_addr.sin_port = htons(port);    
 	serv_addr.sin_addr = *((struct in_addr *)server->h_addr);
 	bzero(&(serv_addr.sin_zero), 8);  
+
+    mutex_cmd.lock();
+    mutex_fetch.lock();
+    mutex_upload.lock();
 
     if (connect(this->sock_cmd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0) 
         cout << "ERROR connecting cmd socket\n";
@@ -55,6 +63,9 @@ void clientComManager::connect_sockets(int port, hostent* server)
             cout <<"fetch socket connected\n";
 
     }
+    mutex_cmd.unlock();
+    mutex_fetch.unlock();
+    mutex_upload.unlock();
 }
 
 void clientComManager::close_sockets()
@@ -74,10 +85,14 @@ void clientComManager::upload()
 
     // Send packet signaling to server what file it wants to upload
     Packet upload_command = Packet(Packet::CMD_PACKET, Command::UPLOAD, 1, (file_path + "\n").c_str(), (file_path + "\n").length());
+    mutex_cmd.lock();
     upload_command.send_packet(this->sock_cmd);
+    mutex_cmd.unlock();
 
     // Upload file to server
-    FileTransfer::send_file(file_path, this->sock_upload);   
+    mutex_upload.lock();
+    FileTransfer::send_file(file_path, this->sock_upload);
+    mutex_upload.unlock();   
 }
 
 void clientComManager::download()
@@ -360,6 +375,9 @@ void clientComManager::await_sync()
 // GETTERS & SETTERS
 std::string clientComManager::get_username(){ return this->username; }
 void clientComManager::set_username(std::string username){ this->username = username; }
+void clientComManager::set_sock_cmd(int sock_cmd){this->sock_cmd = sock_cmd;}
+void clientComManager::set_sock_upload(int sock_upload){this->sock_upload = sock_upload;}
+void clientComManager::set_sock_fetch(int sock_fetch){this->sock_fetch = sock_fetch;}
 
 // asks for the file that will be deleted and sends request with file and username
 void clientComManager::send_delete_request(std::string file_name)

@@ -21,7 +21,8 @@
 #include "commandStatus.h"
 #include "fileTransfer.h"
 #include "packet.h"
-
+#include <mutex>
+#include <map> 
 class clientComManager
 {
     private: 
@@ -36,7 +37,7 @@ class clientComManager
         //Sockets
         void start_sockets();
         void connect_sockets(int port, hostent* server);
-        void close_sockets();
+        
 
         //sync_dir funcs
         void get_sync_dir();
@@ -54,6 +55,8 @@ class clientComManager
         void exit_client();
     
     public:
+        std::mutex mutex_cmd, mutex_fetch, mutex_upload; 
+
         // Constructor Method
         clientComManager();
 
@@ -68,9 +71,11 @@ class clientComManager
         std::string get_username();
         void set_username(std::string username);
         void send_delete_request(std::string file_name);
-
+        void set_sock_cmd(int sock_cmd);
+        void set_sock_upload(int sock_upload);
+        void set_sock_fetch(int sock_fetch);
         // Sett client file handler
         void set_file_manager(clientFileManager* fm); 
-
+        void close_sockets();
 };
 #endif
