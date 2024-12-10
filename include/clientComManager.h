@@ -55,7 +55,7 @@ class clientComManager
         void exit_client();
     
     public:
-        std::mutex mutex_cmd, mutex_fetch, mutex_upload; 
+        std::mutex mutex_upload; 
 
         // Constructor Method
         clientComManager();

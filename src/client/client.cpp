@@ -89,9 +89,6 @@ class client
             while(true){
                 first_contact_socket = accept(listening_socket,(struct sockaddr*)&client_address,&client_len);
                 if(first_contact_socket >= 0){
-                    communication_manager.mutex_cmd.lock();
-                    communication_manager.mutex_fetch.lock();
-                    communication_manager.mutex_upload.lock();
                     communication_manager.close_sockets();
                     try{
                         second_contact_socket = accept(listening_socket,(struct sockaddr*)&client_address,&client_len);
@@ -103,9 +100,6 @@ class client
                     }catch(const std::exception& e){
                         std::cerr << e.what() << '\n';
                     }
-                    communication_manager.mutex_cmd.unlock();
-                    communication_manager.mutex_fetch.unlock();
-                    communication_manager.mutex_upload.unlock();
                 }
             }
         }
